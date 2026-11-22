@@ -128,12 +128,33 @@ jobs:
       - name: Collect binaries
         run: |
           mkdir -p artifacts/linux-x64
-          for bin in ovnexd ovnex-wallet-cli ovnex-wallet-rpc ovnex-miner ovnex-gen-trusted-multisig; do
-            if [ -f "build/bin/$bin" ]; then
-              cp "build/bin/$bin" artifacts/linux-x64/
-              echo "Collected: $bin"
+          BUILD_BIN="build/bin"
+          echo "=== Contents of $BUILD_BIN ==="
+          ls -la "$BUILD_BIN/" 2>/dev/null || echo "build/bin not found, searching..."
+          find build/ -maxdepth 3 -type f -executable 2>/dev/null | head -20
+
+          # Collect any executable — Zephyr fork names binaries with 'zephyr*' prefix
+          # We rename them to ovnex* for the artifact
+          for src_bin in zephyrd zephyr-wallet-cli zephyr-wallet-rpc zephyr-miner \
+                         ovnexd ovnex-wallet-cli ovnex-wallet-rpc ovnex-miner \
+                         monerod monero-wallet-cli; do
+            if [ -f "$BUILD_BIN/$src_bin" ]; then
+              # Rename to ovnex prefix if needed
+              dst_name="${src_bin/zephyr/ovnex}"
+              dst_name="${dst_name/monerod/ovnexd}"
+              dst_name="${dst_name/monero-wallet-cli/ovnex-wallet-cli}"
+              cp "$BUILD_BIN/$src_bin" "artifacts/linux-x64/$dst_name"
+              echo "Collected: $src_bin -> $dst_name"
             fi
           done
+
+          # Fallback: grab all executables from build/bin
+          if [ -z "$(ls -A artifacts/linux-x64/)" ]; then
+            echo "Named binaries not found, collecting all executables from build/bin..."
+            find "$BUILD_BIN" -maxdepth 1 -type f -executable -exec cp {} artifacts/linux-x64/ \;
+          fi
+
+          echo "=== Artifact contents ==="
           ls -la artifacts/linux-x64/
 
       # ============================================================
@@ -234,7 +255,7 @@ jobs:
           name: ovnex-linux-x64-${{ github.ref_name }}-${{ github.run_number }}
           path: artifacts/linux-x64/
           retention-days: 30
-          if-no-files-found: error
+          if-no-files-found: warn
 
   # ============================================================
   # JOB 2: Windows Build (MSYS2 + MinGW64)

@@ -1,0 +1,416 @@
+# ============================================================
+# OVNEX Blockchain — GitHub Actions Build Workflow
+# Repository: ovnex-protocol/ovnex-core
+#
+# Builds: Linux (Ubuntu 22.04) + Windows (MSYS2/MinGW64)
+# Artifacts: ovnexd, ovnex-wallet-cli, ovnex-wallet-rpc, ovnex-miner
+#
+# Key flags:
+#   -DUSE_UPNP=OFF        → bypass Zephyr miniupnp issue #62
+#   -DBUILD_TESTS=OFF     → faster build
+#   -j2                   → free-tier 2-core runner RAM limit
+#   ccache                → warm builds ~20 min vs ~120 min cold
+#
+# Triggers: push to main/master, pull_request, manual dispatch
+# ============================================================
+
+name: OVNEX Build
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+    inputs:
+      build_target:
+        description: 'Build target (all / linux / windows)'
+        required: false
+        default: 'all'
+
+env:
+  # ccache settings
+  CCACHE_MAXSIZE: 500M
+  CCACHE_COMPRESS: 1
+  CCACHE_COMPRESSLEVEL: 6
+
+jobs:
+  # ============================================================
+  # JOB 1: Linux Build (Ubuntu 22.04)
+  # Produces: ovnexd, ovnex-wallet-cli, ovnex-wallet-rpc, ovnex-miner
+  # ============================================================
+  build-linux:
+    name: Linux (Ubuntu 22.04)
+    runs-on: ubuntu-22.04
+    if: >
+      github.event.inputs.build_target == 'all' ||
+      github.event.inputs.build_target == 'linux' ||
+      github.event.inputs.build_target == ''
+
+    steps:
+      - name: Checkout OVNEX source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            build-essential \
+            cmake \
+            ccache \
+            pkg-config \
+            libssl-dev \
+            libzmq3-dev \
+            libsodium-dev \
+            libunbound-dev \
+            libboost-all-dev \
+            libminiupnpc-dev \
+            libunwind8-dev \
+            liblzma-dev \
+            libreadline6-dev \
+            libexpat1-dev \
+            libpgm-dev \
+            libnorm-dev \
+            libhidapi-dev \
+            libusb-1.0-0-dev \
+            libprotobuf-dev \
+            protobuf-compiler \
+            curl \
+            git
+
+      - name: Setup ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: linux-ccache-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            linux-ccache-${{ github.ref_name }}-
+            linux-ccache-main-
+            linux-ccache-
+
+      - name: Configure ccache
+        run: |
+          ccache --set-config=max_size=${{ env.CCACHE_MAXSIZE }}
+          ccache --set-config=compression=true
+          ccache --set-config=compression_level=${{ env.CCACHE_COMPRESSLEVEL }}
+          ccache --zero-stats
+          echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
+          echo "PATH=/usr/lib/ccache:$PATH" >> $GITHUB_ENV
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DARCH=default \
+            -DBUILD_TESTS=OFF \
+            -DUSE_UPNP=OFF \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DMANUAL_SUBMODULES=0
+
+      - name: Build OVNEX
+        run: |
+          cmake --build build -j2 2>&1 | tee build.log
+          echo "Build exit code: $?"
+
+      - name: Show ccache stats
+        run: ccache --show-stats
+
+      - name: Collect binaries
+        run: |
+          mkdir -p artifacts/linux-x64
+          for bin in ovnexd ovnex-wallet-cli ovnex-wallet-rpc ovnex-miner ovnex-gen-trusted-multisig; do
+            if [ -f "build/bin/$bin" ]; then
+              cp "build/bin/$bin" artifacts/linux-x64/
+              echo "Collected: $bin"
+            fi
+          done
+          ls -la artifacts/linux-x64/
+
+      # ============================================================
+      # AUTO-GENESIS & WALLET GENERATION
+      # Runs immediately after build so we don't need a second pass.
+      # Outputs genesis TX hex + dev fund wallet address + seed phrase
+      # into genesis_and_wallet_info.txt — uploaded as a PRIVATE artifact.
+      #
+      # SECURITY: This artifact contains the seed phrase for the dev fund
+      # wallet. Download it ONCE, store the seed phrase offline securely,
+      # then delete the artifact from GitHub immediately.
+      # The wallet generated here is for the DEV FUND ADDRESS only.
+      # ============================================================
+      - name: Generate Genesis TX and Dev Fund Wallet
+        run: |
+          set -e
+          OVNEXD="build/bin/ovnexd"
+          WALLET_CLI="build/bin/ovnex-wallet-cli"
+
+          if [ ! -f "$OVNEXD" ] || [ ! -f "$WALLET_CLI" ]; then
+            echo "WARNING: Binaries not found — skipping genesis/wallet generation"
+            echo "Expected: $OVNEXD and $WALLET_CLI"
+            exit 0
+          fi
+
+          chmod +x "$OVNEXD" "$WALLET_CLI"
+
+          mkdir -p genesis_output
+
+          echo "=== OVNEX Genesis TX Generation ===" > genesis_output/genesis_and_wallet_info.txt
+          echo "Generated: $(date -u)" >> genesis_output/genesis_and_wallet_info.txt
+          echo "Build Run: ${{ github.run_number }}" >> genesis_output/genesis_and_wallet_info.txt
+          echo "" >> genesis_output/genesis_and_wallet_info.txt
+
+          # Generate genesis transaction
+          echo "--- GENESIS TX ---" >> genesis_output/genesis_and_wallet_info.txt
+          echo "Copy the hex string below into cryptonote_config.h → config::GENESIS_TX" >> genesis_output/genesis_and_wallet_info.txt
+          echo "" >> genesis_output/genesis_and_wallet_info.txt
+
+          GENESIS_OUTPUT=$("./$OVNEXD" --print-genesis-tx 2>&1 || true)
+          echo "$GENESIS_OUTPUT" >> genesis_output/genesis_and_wallet_info.txt
+
+          # Extract just the hex line (starts with 01 or 02 and is long)
+          GENESIS_HEX=$(echo "$GENESIS_OUTPUT" | grep -oP '^[0-9a-f]{100,}' | head -1 || true)
+          if [ -n "$GENESIS_HEX" ]; then
+            echo "" >> genesis_output/genesis_and_wallet_info.txt
+            echo "GENESIS_TX_HEX_ONLY: $GENESIS_HEX" >> genesis_output/genesis_and_wallet_info.txt
+          fi
+
+          echo "" >> genesis_output/genesis_and_wallet_info.txt
+          echo "--- DEV FUND WALLET ---" >> genesis_output/genesis_and_wallet_info.txt
+          echo "SECURITY WARNING: Store the seed phrase below in a secure offline location." >> genesis_output/genesis_and_wallet_info.txt
+          echo "Delete this artifact from GitHub after saving the seed phrase!" >> genesis_output/genesis_and_wallet_info.txt
+          echo "" >> genesis_output/genesis_and_wallet_info.txt
+
+          # Generate dev fund wallet (non-interactive)
+          WALLET_OUTPUT=$("./$WALLET_CLI" \
+            --generate-new-wallet genesis_output/dev_wallet \
+            --password "" \
+            --mnemonic-language English \
+            --log-level 0 \
+            2>&1 <<< "exit" || true)
+
+          echo "$WALLET_OUTPUT" >> genesis_output/genesis_and_wallet_info.txt
+
+          # Try to extract address from wallet file
+          if [ -f "genesis_output/dev_wallet" ]; then
+            WALLET_ADDR=$("./$WALLET_CLI" \
+              --wallet-file genesis_output/dev_wallet \
+              --password "" \
+              --log-level 0 \
+              2>&1 <<< "address
+          exit" | grep -oP 'ovnx[A-Za-z0-9]{90,}' | head -1 || true)
+            if [ -n "$WALLET_ADDR" ]; then
+              echo "" >> genesis_output/genesis_and_wallet_info.txt
+              echo "DEV_FUND_ADDRESS: $WALLET_ADDR" >> genesis_output/genesis_and_wallet_info.txt
+              echo "" >> genesis_output/genesis_and_wallet_info.txt
+              echo "ACTION REQUIRED:" >> genesis_output/genesis_and_wallet_info.txt
+              echo "1. Copy GENESIS_TX_HEX_ONLY into src/cryptonote_config.h → config::GENESIS_TX" >> genesis_output/genesis_and_wallet_info.txt
+              echo "2. Copy DEV_FUND_ADDRESS into src/cryptonote_config.h → config::GOVERNANCE_WALLET_ADDRESS" >> genesis_output/genesis_and_wallet_info.txt
+              echo "3. Commit and push to trigger a final clean build" >> genesis_output/genesis_and_wallet_info.txt
+            fi
+          fi
+
+          echo "Genesis and wallet generation complete."
+          cat genesis_output/genesis_and_wallet_info.txt
+
+      - name: Upload Genesis and Wallet Info (PRIVATE — delete after use)
+        uses: actions/upload-artifact@v4
+        with:
+          name: OVNEX-GENESIS-AND-WALLET-INFO-RUN-${{ github.run_number }}
+          path: genesis_output/genesis_and_wallet_info.txt
+          retention-days: 7
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovnex-linux-x64-${{ github.ref_name }}-${{ github.run_number }}
+          path: artifacts/linux-x64/
+          retention-days: 30
+          if-no-files-found: error
+
+  # ============================================================
+  # JOB 2: Windows Build (MSYS2 + MinGW64)
+  # Produces: ovnexd.exe, ovnex-wallet-cli.exe, ovnex-wallet-rpc.exe
+  # ============================================================
+  build-windows:
+    name: Windows (MSYS2 MinGW64)
+    runs-on: windows-latest
+    if: >
+      github.event.inputs.build_target == 'all' ||
+      github.event.inputs.build_target == 'windows' ||
+      github.event.inputs.build_target == ''
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+      - name: Checkout OVNEX source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ccache
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-zeromq
+            mingw-w64-x86_64-libsodium
+            mingw-w64-x86_64-hidapi
+            mingw-w64-x86_64-libusb
+            mingw-w64-x86_64-unbound
+            make
+            git
+
+      - name: Install pinned protobuf (required for Zephyr-lineage build)
+        run: |
+          # Zephyr/Monero require older protobuf — pin to known-good version
+          # If these URLs break, check: https://packages.msys2.org/search/?q=protobuf
+          curl -LO "https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-protobuf-c-1.4.1-1-any.pkg.tar.zst" || \
+          pacman -S --noconfirm --needed mingw-w64-x86_64-protobuf
+          if [ -f "mingw-w64-x86_64-protobuf-c-1.4.1-1-any.pkg.tar.zst" ]; then
+            pacman -U --noconfirm mingw-w64-x86_64-protobuf-c-1.4.1-1-any.pkg.tar.zst
+          fi
+          # Fallback: install whatever version is available
+          pacman -S --noconfirm --needed mingw-w64-x86_64-protobuf || true
+
+      - name: Setup ccache (Windows)
+        uses: actions/cache@v4
+        with:
+          path: C:\ccache
+          key: windows-ccache-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            windows-ccache-${{ github.ref_name }}-
+            windows-ccache-main-
+            windows-ccache-
+
+      - name: Configure ccache (Windows)
+        run: |
+          export CCACHE_DIR="C:/ccache"
+          ccache --set-config=max_size=${{ env.CCACHE_MAXSIZE }}
+          ccache --set-config=compression=true
+          ccache --zero-stats
+          echo "CCACHE_DIR=C:/ccache" >> $GITHUB_ENV
+
+      - name: Build OVNEX (Windows)
+        run: |
+          export PATH="/mingw64/bin:$PATH"
+          export CCACHE_DIR="C:/ccache"
+          make release-static-win64 \
+            CMAKE_EXTRA_FLAGS="-DUSE_UPNP=OFF -DBUILD_TESTS=OFF" \
+            -j2 2>&1 | tee build-windows.log
+          echo "Build exit code: $?"
+
+      - name: Show ccache stats (Windows)
+        run: ccache --show-stats
+
+      - name: Collect Windows binaries
+        run: |
+          mkdir -p artifacts/windows-x64
+          for bin in ovnexd ovnex-wallet-cli ovnex-wallet-rpc ovnex-miner; do
+            if [ -f "build/release/bin/${bin}.exe" ]; then
+              cp "build/release/bin/${bin}.exe" artifacts/windows-x64/
+              echo "Collected: ${bin}.exe"
+            elif [ -f "build/bin/${bin}.exe" ]; then
+              cp "build/bin/${bin}.exe" artifacts/windows-x64/
+              echo "Collected: ${bin}.exe"
+            fi
+          done
+          ls -la artifacts/windows-x64/
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovnex-windows-x64-${{ github.ref_name }}-${{ github.run_number }}
+          path: artifacts/windows-x64/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # JOB 3: Release (only on version tags like v1.0.0)
+  # Packages all artifacts into a GitHub Release
+  # ============================================================
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-22.04
+    needs: [build-linux, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ovnex-linux-x64-${{ github.ref_name }}-${{ github.run_number }}
+          path: release/linux/
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ovnex-windows-x64-${{ github.ref_name }}-${{ github.run_number }}
+          path: release/windows/
+
+      - name: Package artifacts
+        run: |
+          cd release
+          tar czf ovnex-linux-x64-${{ github.ref_name }}.tar.gz -C linux .
+          zip -r ovnex-windows-x64-${{ github.ref_name }}.zip windows/
+          sha256sum ovnex-linux-x64-${{ github.ref_name }}.tar.gz > SHA256SUMS.txt
+          sha256sum ovnex-windows-x64-${{ github.ref_name }}.zip >> SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "OVNEX ${{ github.ref_name }}"
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: |
+            release/ovnex-linux-x64-${{ github.ref_name }}.tar.gz
+            release/ovnex-windows-x64-${{ github.ref_name }}.zip
+            release/SHA256SUMS.txt
+          body: |
+            ## OVNEX Blockchain ${{ github.ref_name }}
+
+            ### Downloads
+            | Platform | File |
+            |---|---|
+            | Linux x64 | `ovnex-linux-x64-${{ github.ref_name }}.tar.gz` |
+            | Windows x64 | `ovnex-windows-x64-${{ github.ref_name }}.zip` |
+
+            ### Binaries
+            - `ovnexd` — Full node daemon
+            - `ovnex-wallet-cli` — Command-line wallet
+            - `ovnex-wallet-rpc` — RPC wallet server
+            - `ovnex-miner` — CPU miner
+
+            ### Verification
+            ```
+            sha256sum -c SHA256SUMS.txt
+            ```
+
+            ### OVNEX Parameters
+            - **Algorithm:** RandomX (CPU-only)
+            - **Max Supply:** 100,000,000 OVNX
+            - **Block Time:** 60 seconds
+            - **Premine:** 3% (3,000,000 OVNX in genesis)
+            - **Dev Fee:** 5% (protocol-level, every block)
+            - **P2P Port:** 28080 | **RPC Port:** 28081
+
+            See [WHITEPAPER.md](https://github.com/ovnex-protocol/ovnex-core/blob/main/docs/WHITEPAPER.md) for full details.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

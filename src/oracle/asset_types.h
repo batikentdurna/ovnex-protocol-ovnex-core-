@@ -1,0 +1,113 @@
+// Copyright (c) 2021, Haven Protocol
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without modification, are
+// permitted provided that the following conditions are met:
+//
+// 1. Redistributions of source code must retain the above copyright notice, this list of
+//    conditions and the following disclaimer.
+//
+// 2. Redistributions in binary form must reproduce the above copyright notice, this list
+//    of conditions and the following disclaimer in the documentation and/or other
+//    materials provided with the distribution.
+//
+// 3. Neither the name of the copyright holder nor the names of its contributors may be
+//    used to endorse or promote products derived from this software without specific
+//    prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+// EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+// MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL
+// THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+// PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+// INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+// STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
+// THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+#pragma once
+#include <string>
+#include <vector>
+
+namespace oracle {
+
+  const std::vector<std::string> ASSET_TYPES = {"ZEPH", "ZEPHUSD", "ZEPHRSV", "ZYIELD"};
+  const std::vector<std::string> RESERVE_TYPES = {"ZEPH", "ZEPHUSD", "ZEPHRSV", "ZYIELD", "ZYIELDRSV"};
+
+  const std::vector<std::string> ASSET_TYPES_V2 = {"ZPH", "ZSD", "ZRS", "ZYS"};
+  const std::vector<std::string> RESERVE_TYPES_V2 = {"DJED", "YIELD"};
+
+  class asset_type_counts
+  {
+
+    public:
+
+      // Fields 
+      uint64_t ZEPH;
+      uint64_t ZEPHUSD;
+      uint64_t ZEPHRSV;
+      uint64_t ZYIELD;
+
+      // v2 fields
+      uint64_t ZPH;
+      uint64_t ZSD;
+      uint64_t ZRS;
+      uint64_t ZYS;
+
+      asset_type_counts() noexcept
+        : ZEPH(0)
+        , ZEPHUSD(0)
+        , ZEPHRSV(0)
+        , ZYIELD(0)
+        , ZPH(0)
+        , ZSD(0)
+        , ZRS(0)
+        , ZYS(0)
+      {
+      }
+
+      uint64_t operator[](const std::string asset_type) const noexcept
+      {
+        if (asset_type == "ZEPH") {
+          return ZEPH;
+        } else if (asset_type == "ZEPHUSD") {
+          return ZEPHUSD;
+        } else if (asset_type == "ZEPHRSV") {
+          return ZEPHRSV;
+        } else if (asset_type == "ZYIELD") {
+          return ZYIELD;
+        } else if (asset_type == "ZPH") {
+          return ZPH;
+        } else if (asset_type == "ZSD") {
+          return ZSD;
+        } else if (asset_type == "ZRS") {
+          return ZRS;
+        } else if (asset_type == "ZYS") {
+          return ZYS;
+        }
+
+        return 0;
+      }
+
+      void add(const std::string asset_type, const uint64_t val)
+      {
+        if (asset_type == "ZEPH") {
+          ZEPH += val;
+        } else if (asset_type == "ZEPHUSD") {
+          ZEPHUSD += val;
+        } else if (asset_type == "ZEPHRSV") {
+          ZEPHRSV += val;
+        } else if (asset_type == "ZYIELD") {
+          ZYIELD += val;
+        } else if (asset_type == "ZPH") {
+          ZPH += val;
+        } else if (asset_type == "ZSD") {
+          ZSD += val;
+        } else if (asset_type == "ZRS") {
+          ZRS += val;
+        } else if (asset_type == "ZYS") {
+          ZYS += val;
+        }
+      }
+  };
+}

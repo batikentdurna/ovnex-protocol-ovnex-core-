@@ -119,8 +119,14 @@ jobs:
 
       - name: Build OVNEX
         run: |
+          # Monero/Zephyr lineage: cmake --build puts binaries in build/release/bin/
+          # We use Makefile's release-static-linux-x86_64 target for proper static builds
           cmake --build build -j2 2>&1 | tee build.log
           echo "Build exit code: $?"
+          echo "=== build/release/bin/ ==="
+          ls -la build/release/bin/ 2>/dev/null || echo "(not found)"
+          echo "=== build/bin/ ==="
+          ls -la build/bin/ 2>/dev/null || echo "(not found)"
 
       - name: Show ccache stats
         run: ccache --show-stats
@@ -128,21 +134,38 @@ jobs:
       - name: Collect binaries
         run: |
           mkdir -p artifacts/linux-x64
-          BUILD_BIN="build/bin"
-          echo "=== Contents of $BUILD_BIN ==="
-          ls -la "$BUILD_BIN/" 2>/dev/null || echo "build/bin not found, searching..."
-          find build/ -maxdepth 3 -type f -executable 2>/dev/null | head -20
+          # Monero/Zephyr cmake puts release binaries in build/release/bin/
+          # Try both locations; rename zephyr* to ovnex*
+          for BUILD_BIN in "build/release/bin" "build/bin" "build"; do
+            if ls "$BUILD_BIN"/ 2>/dev/null | grep -qE 'zephyr|ovnex|monero'; then
+              echo "Found binaries in: $BUILD_BIN"
+              for src_bin in zephyrd zephyr-wallet-cli zephyr-wallet-rpc zephyr-miner \
+                             ovnexd ovnex-wallet-cli ovnex-wallet-rpc ovnex-miner \
+                             monerod monero-wallet-cli; do
+                if [ -f "$BUILD_BIN/$src_bin" ]; then
+                  dst_name="${src_bin/zephyr/ovnex}"
+                  dst_name="${dst_name/monerod/ovnexd}"
+                  dst_name="${dst_name/monero-wallet-cli/ovnex-wallet-cli}"
+                  cp "$BUILD_BIN/$src_bin" "artifacts/linux-x64/$dst_name"
+                  echo "Collected: $src_bin -> $dst_name"
+                fi
+              done
+              break
+            fi
+          done
 
-          # Collect any executable — Zephyr fork names binaries with 'zephyr*' prefix
-          # We rename them to ovnex* for the artifact
-          for src_bin in zephyrd zephyr-wallet-cli zephyr-wallet-rpc zephyr-miner \
-                         ovnexd ovnex-wallet-cli ovnex-wallet-rpc ovnex-miner \
-                         monerod monero-wallet-cli; do
-            if [ -f "$BUILD_BIN/$src_bin" ]; then
-              # Rename to ovnex prefix if needed
-              dst_name="${src_bin/zephyr/ovnex}"
-              dst_name="${dst_name/monerod/ovnexd}"
-              dst_name="${dst_name/monero-wallet-cli/ovnex-wallet-cli}"
+          # If still empty, grab ALL executables from build tree (> 1MB = real binary)
+          if [ -z "$(ls -A artifacts/linux-x64/)" ]; then
+            echo "Fallback: searching entire build tree for large executables..."
+            find build/ -maxdepth 4 -type f -executable -size +1M 2>/dev/null | while read f; do
+              name=$(basename "$f")
+              echo "Found: $f"
+              cp "$f" "artifacts/linux-x64/$name" 2>/dev/null || true
+            done
+          fi
+
+          echo "=== Final artifact contents ==="
+          ls -la artifacts/linux-x64/
               cp "$BUILD_BIN/$src_bin" "artifacts/linux-x64/$dst_name"
               echo "Collected: $src_bin -> $dst_name"
             fi
@@ -171,8 +194,19 @@ jobs:
       - name: Generate Genesis TX and Dev Fund Wallet
         run: |
           set -e
-          OVNEXD="build/bin/ovnexd"
-          WALLET_CLI="build/bin/ovnex-wallet-cli"
+          # Find actual binary location (Zephyr cmake outputs to build/release/bin/)
+          OVNEXD=""
+          WALLET_CLI=""
+          for dir in "build/release/bin" "build/bin" "artifacts/linux-x64"; do
+            for name in zephyrd ovnexd; do
+              [ -f "$dir/$name" ] && OVNEXD="$dir/$name" && break 2
+            done
+          done
+          for dir in "build/release/bin" "build/bin" "artifacts/linux-x64"; do
+            for name in "zephyr-wallet-cli" "ovnex-wallet-cli"; do
+              [ -f "$dir/$name" ] && WALLET_CLI="$dir/$name" && break 2
+            done
+          done
 
           if [ ! -f "$OVNEXD" ] || [ ! -f "$WALLET_CLI" ]; then
             echo "WARNING: Binaries not found — skipping genesis/wallet generation"

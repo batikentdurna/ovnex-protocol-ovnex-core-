@@ -340,13 +340,20 @@ jobs:
             | Platform | File |
             |---|---|
             | Linux x64 | `ovnex-linux-x64-${{ github.ref_name }}.tar.gz` |
-            | Windows x64 | Coming soon (build in progress) |
+            | Windows x64 | Use WSL2 — see guide below |
 
             ### Binaries
             - `ovnexd` — Full node daemon
             - `ovnex-wallet-cli` — Command-line wallet
             - `ovnex-wallet-rpc` — RPC wallet server
             - `ovnex-miner` — CPU miner
+
+            ### Windows Users — WSL2 Quick Start
+            1. Install WSL2: `wsl --install` (PowerShell as admin)
+            2. Download `ovnex-linux-x64-${{ github.ref_name }}.tar.gz`
+            3. In WSL terminal: `tar xzf ovnex-linux-x64-${{ github.ref_name }}.tar.gz`
+            4. Run: `./ovnexd --p2p-bind-port 28080 --rpc-bind-port 28081 --detach`
+            5. For CPU mining: use XMRig with `--algo rx/0 --url 127.0.0.1:28081`
 
             ### Verification
             ```
@@ -361,6 +368,6 @@ jobs:
             - **Dev Fee:** 5% (protocol-level, every block)
             - **P2P Port:** 28080 | **RPC Port:** 28081
 
-            See [WHITEPAPER.md](https://github.com/ovnex-protocol/ovnex-core/blob/main/docs/WHITEPAPER.md) for full details.
+            See [ovnex.io](https://ovnex.io/) for full details and mining guide.
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}

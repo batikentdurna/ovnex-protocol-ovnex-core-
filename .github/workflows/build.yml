@@ -178,8 +178,23 @@ jobs:
           mkdir -p artifacts/linux-x64/lib
           OVNEXD="artifacts/linux-x64/ovnexd"
           if [ -f "$OVNEXD" ]; then
-            ldd "$OVNEXD" | grep -E 'libboost|libstdc\+\+|libgcc_s' | awk '{print $3}' | while read lib; do
-              [ -f "$lib" ] && cp "$lib" artifacts/linux-x64/lib/ && echo "Bundled lib: $(basename $lib)"
+            # Get ALL shared libs except libc, libpthread (always present)
+            ldd "$OVNEXD" | awk '{print $3}' | grep -v '^$' | grep '\.so' | while read lib; do
+              [ -f "$lib" ] && cp -L "$lib" artifacts/linux-x64/lib/ 2>/dev/null && echo "Bundled: $(basename $lib)"
+            done
+            # Also explicitly bundle known-missing on RHEL9
+            for extra in \
+              /usr/lib/x86_64-linux-gnu/libhidapi-libusb.so.0 \
+              /usr/lib/x86_64-linux-gnu/libhidapi-hidraw.so.0 \
+              /usr/lib/x86_64-linux-gnu/libunbound.so.8 \
+              /usr/lib/x86_64-linux-gnu/libunbound.so.2 \
+              /usr/lib/x86_64-linux-gnu/libzmq.so.5 \
+              /usr/lib/x86_64-linux-gnu/libsodium.so.23 \
+              /usr/lib/x86_64-linux-gnu/libnorm.so.1 \
+              /usr/lib/x86_64-linux-gnu/libpgm-5.3.so.0 \
+              /usr/lib/x86_64-linux-gnu/liblzma.so.5 \
+              /lib/x86_64-linux-gnu/libreadline.so.8; do
+              [ -f "$extra" ] && cp -L "$extra" artifacts/linux-x64/lib/ 2>/dev/null && echo "Extra bundled: $(basename $extra)"
             done
           fi
           printf '#!/bin/bash\nDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"\nexport LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"\nexec "$DIR/ovnexd" "$@"\n' > artifacts/linux-x64/run_ovnexd.sh

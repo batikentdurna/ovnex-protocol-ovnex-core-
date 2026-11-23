@@ -1,15 +1,15 @@
 # ============================================================
-# OVNEX Blockchain â€” GitHub Actions Build Workflow
+# OVNEX Blockchain — GitHub Actions Build Workflow
 # Repository: ovnex-protocol/ovnex-core
 #
 # Builds: Linux (Ubuntu 22.04) + Windows (MSYS2/MinGW64)
 # Artifacts: ovnexd, ovnex-wallet-cli, ovnex-wallet-rpc, ovnex-miner
 #
 # Key flags:
-#   -DUSE_UPNP=OFF        â†’ bypass Zephyr miniupnp issue #62
-#   -DBUILD_TESTS=OFF     â†’ faster build
-#   -j2                   â†’ free-tier 2-core runner RAM limit
-#   ccache                â†’ warm builds ~20 min vs ~120 min cold
+#   -DUSE_UPNP=OFF        → bypass Zephyr miniupnp issue #62
+#   -DBUILD_TESTS=OFF     → faster build
+#   -j2                   → free-tier 2-core runner RAM limit
+#   ccache                → warm builds ~20 min vs ~120 min cold
 #
 # Triggers: push to main/master, pull_request, manual dispatch
 # ============================================================
@@ -45,11 +45,11 @@ env:
 
 jobs:
   # ============================================================
-  # JOB 1: Linux Build (Ubuntu 20.04 — GLIBC 2.31, GLIBCXX 3.4.28)
-  # Binary is compatible with AlmaLinux 9 (GLIBC 2.34) servers
+  # JOB 1: Linux Build (Ubuntu 22.04)
+  # Produces: ovnexd, ovnex-wallet-cli, ovnex-wallet-rpc, ovnex-miner
   # ============================================================
   build-linux:
-    name: Linux (Ubuntu 20.04)
+    name: Linux (Ubuntu 22.04)
     runs-on: ubuntu-22.04
     if: >
       github.event.inputs.build_target == 'all' ||
@@ -116,7 +116,6 @@ jobs:
             -DARCH=default \
             -DBUILD_TESTS=OFF \
             -DUSE_UPNP=OFF \
-            -DSTATIC=ON \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DMANUAL_SUBMODULES=0
@@ -130,7 +129,9 @@ jobs:
           echo "=== build/release/bin/ ==="
           ls -la build/release/bin/ 2>/dev/null || echo "(not found)"
           echo "=== build/bin/ ==="
-          ls -la build/bin/ 2>/dev/null || echo "(not found)"      - name: Show ccache stats
+          ls -la build/bin/ 2>/dev/null || echo "(not found)"
+
+      - name: Show ccache stats
         run: ccache --show-stats
 
       - name: Collect binaries
@@ -169,7 +170,7 @@ jobs:
           echo "=== Final artifact contents ==="
           ls -la artifacts/linux-x64/
           if [ -z "$(ls -A artifacts/linux-x64/)" ]; then
-            echo "##[error]No binaries collected - build may have failed"
+            echo "##[error]No binaries collected — build may have failed"
             exit 1
           fi
 
@@ -251,7 +252,7 @@ jobs:
 
       - name: Install pinned protobuf (required for Zephyr-lineage build)
         run: |
-          # Zephyr/Monero require older protobuf â€” pin to known-good version
+          # Zephyr/Monero require older protobuf — pin to known-good version
           # If these URLs break, check: https://packages.msys2.org/search/?q=protobuf
           curl -LO "https://repo.msys2.org/mingw/mingw64/mingw-w64-x86_64-protobuf-c-1.4.1-1-any.pkg.tar.zst" || \
           pacman -S --noconfirm --needed mingw-w64-x86_64-protobuf
@@ -365,15 +366,15 @@ jobs:
             | Platform | File |
             |---|---|
             | Linux x64 | `ovnex-linux-x64-${{ github.ref_name }}.tar.gz` |
-            | Windows x64 | Use WSL2 â€” see guide below |
+            | Windows x64 | Use WSL2 — see guide below |
 
             ### Binaries
-            - `ovnexd` â€” Full node daemon
-            - `ovnex-wallet-cli` â€” Command-line wallet
-            - `ovnex-wallet-rpc` â€” RPC wallet server
-            - `ovnex-miner` â€” CPU miner
+            - `ovnexd` — Full node daemon
+            - `ovnex-wallet-cli` — Command-line wallet
+            - `ovnex-wallet-rpc` — RPC wallet server
+            - `ovnex-miner` — CPU miner
 
-            ### Windows Users â€” WSL2 Quick Start
+            ### Windows Users — WSL2 Quick Start
             1. Install WSL2: `wsl --install` (PowerShell as admin)
             2. Download `ovnex-linux-x64-${{ github.ref_name }}.tar.gz`
             3. In WSL terminal: `tar xzf ovnex-linux-x64-${{ github.ref_name }}.tar.gz`
@@ -396,5 +397,3 @@ jobs:
             See [ovnex.io](https://ovnex.io/) for full details and mining guide.
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-
-

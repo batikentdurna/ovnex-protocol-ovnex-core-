@@ -119,8 +119,8 @@ jobs:
 
       - name: Build OVNEX
         run: |
-          # Monero/Zephyr lineage: cmake --build puts binaries in build/release/bin/
-          # We use Makefile's release-static-linux-x86_64 target for proper static builds
+          # Monero/Zephyr lineage: cmake --build puts binaries in build/bin/
+          set -o pipefail
           cmake --build build -j2 2>&1 | tee build.log
           echo "Build exit code: $?"
           echo "=== build/release/bin/ ==="
@@ -166,19 +166,10 @@ jobs:
 
           echo "=== Final artifact contents ==="
           ls -la artifacts/linux-x64/
-              cp "$BUILD_BIN/$src_bin" "artifacts/linux-x64/$dst_name"
-              echo "Collected: $src_bin -> $dst_name"
-            fi
-          done
-
-          # Fallback: grab all executables from build/bin
           if [ -z "$(ls -A artifacts/linux-x64/)" ]; then
-            echo "Named binaries not found, collecting all executables from build/bin..."
-            find "$BUILD_BIN" -maxdepth 1 -type f -executable -exec cp {} artifacts/linux-x64/ \;
+            echo "##[error]No binaries collected — build may have failed"
+            exit 1
           fi
-
-          echo "=== Artifact contents ==="
-          ls -la artifacts/linux-x64/
 
       # ============================================================
       # AUTO-GENESIS & WALLET GENERATION

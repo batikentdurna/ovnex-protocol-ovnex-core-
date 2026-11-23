@@ -174,7 +174,27 @@ jobs:
             exit 1
           fi
 
-
+          # Bundle required .so files for RHEL9/AlmaLinux9 compatibility
+          # (libstdc++.so.6, libboost_*.so) so server can run with LD_LIBRARY_PATH
+          mkdir -p artifacts/linux-x64/lib
+          OVNEXD="artifacts/linux-x64/ovnexd"
+          if [ -f "$OVNEXD" ]; then
+            ldd "$OVNEXD" | grep -E 'libboost|libstdc\+\+|libgcc_s' | awk '{print $3}' | while read lib; do
+              [ -f "$lib" ] && cp "$lib" artifacts/linux-x64/lib/ && echo "Bundled lib: $(basename $lib)"
+            done
+          fi
+          # Also create a launcher wrapper
+          cat > artifacts/linux-x64/run_ovnexd.sh << 'LAUNCHER'
+#!/bin/bash
+# OVNEX daemon launcher — bundles required libs for RHEL9/AlmaLinux9
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export LD_LIBRARY_PATH="$DIR/lib:$LD_LIBRARY_PATH"
+exec "$DIR/ovnexd" "$@"
+LAUNCHER
+          chmod +x artifacts/linux-x64/run_ovnexd.sh
+          echo "Launcher script created"
+          echo "=== Lib bundle ==="
+          ls -lh artifacts/linux-x64/lib/ 2>/dev/null || echo "(empty)"
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:

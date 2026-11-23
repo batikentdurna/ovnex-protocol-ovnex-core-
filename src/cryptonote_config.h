@@ -304,8 +304,8 @@ namespace config
   // PLACEHOLDER — replace with real OVNEX wallet address after first build.
   // Format: valid OVNEX mainnet address starting with "ovnx"
   // The governance mechanism is REPURPOSED as OVNEX Dev Fee.
-  std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_ADDRESS_AFTER_FIRST_BUILD";
-  std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_ADDRESS_AFTER_FIRST_BUILD";
+  std::string const GOVERNANCE_WALLET_ADDRESS = "WtTSWhEYRkhMtke2ZgvYEn6HuDDPy33C1NCs3R9xxjx2KyNP2HNsk8w4T1AvV2AGbvRbmEUdFaoSvBvGsehieLA821Qd2KsEHn";
+  std::string const GOV_WALLET_ADDRESS_2 = "WtTSWhEYRkhMtke2ZgvYEn6HuDDPy33C1NCs3R9xxjx2KyNP2HNsk8w4T1AvV2AGbvRbmEUdFaoSvBvGsehieLA821Qd2KsEHn";
 
   // ORACLE DISABLED — OVNEX has no external oracle dependency.
   // These fields are kept for compile compatibility only.

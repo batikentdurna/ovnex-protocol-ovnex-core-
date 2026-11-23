@@ -120,3 +120,26 @@ nbproject
 __pycache__/
 *.pyc
 *.log
+
+# OVNEX — Güvenlik: şifre/secret dosyaları asla git'e girmesin
+.ovnex_secrets.json
+*GIZLI*
+*SECRET*
+*secret*
+*_seed.txt
+*_SEED.txt
+GIZLI_*
+genesis_output/
+genesis_artifact.zip
+genesis.zip
+ovnex_build_log.txt
+*_deploy_temp.py
+*.keys
+dev_wallet*
+
+# OVNEX Secret Files
+GIZLI_KURUCU_CUZDAN_SEED.txt
+.ovnex_secrets.json
+genesis_output/
+genesis_artifact.zip
+wait_and_seal_mainnet.py

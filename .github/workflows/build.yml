@@ -172,106 +172,77 @@ jobs:
           fi
 
       # ============================================================
-      # AUTO-GENESIS & WALLET GENERATION
-      # Runs immediately after build so we don't need a second pass.
-      # Outputs genesis TX hex + dev fund wallet address + seed phrase
-      # into genesis_and_wallet_info.txt — uploaded as a PRIVATE artifact.
-      #
-      # SECURITY: This artifact contains the seed phrase for the dev fund
-      # wallet. Download it ONCE, store the seed phrase offline securely,
-      # then delete the artifact from GitHub immediately.
-      # The wallet generated here is for the DEV FUND ADDRESS only.
+      # GENESIS TX GENERATION (Zephyr/OVNEX method)
+      # ovnexd does not support --print-genesis-tx flag.
+      # Instead: start daemon briefly with --non-interactive and
+      # capture the genesis transaction hex from its startup log.
+      # The wallet was already created in Run #4; we now only need
+      # the genesis TX hex so we can lock it into cryptonote_config.h
       # ============================================================
-      - name: Generate Genesis TX and Dev Fund Wallet
+      - name: Generate Genesis TX
         run: |
           set -e
-          # Find actual binary location (Zephyr cmake outputs to build/release/bin/)
+          mkdir -p genesis_output
+
           OVNEXD=""
-          WALLET_CLI=""
-          for dir in "build/release/bin" "build/bin" "artifacts/linux-x64"; do
-            for name in zephyrd ovnexd; do
+          for dir in "artifacts/linux-x64" "build/bin" "build/release/bin"; do
+            for name in ovnexd zephyrd; do
               [ -f "$dir/$name" ] && OVNEXD="$dir/$name" && break 2
             done
           done
-          for dir in "build/release/bin" "build/bin" "artifacts/linux-x64"; do
-            for name in "zephyr-wallet-cli" "ovnex-wallet-cli"; do
-              [ -f "$dir/$name" ] && WALLET_CLI="$dir/$name" && break 2
-            done
-          done
 
-          if [ ! -f "$OVNEXD" ] || [ ! -f "$WALLET_CLI" ]; then
-            echo "WARNING: Binaries not found — skipping genesis/wallet generation"
-            echo "Expected: $OVNEXD and $WALLET_CLI"
+          if [ -z "$OVNEXD" ]; then
+            echo "WARNING: daemon binary not found — skipping genesis TX"
             exit 0
           fi
 
-          chmod +x "$OVNEXD" "$WALLET_CLI"
+          chmod +x "$OVNEXD"
 
-          mkdir -p genesis_output
+          # Run daemon briefly to generate genesis TX, capture output
+          GENESIS_LOG="genesis_output/genesis_run.log"
+          timeout 30 "$OVNEXD" \
+            --non-interactive \
+            --regtest \
+            --keep-fakechain \
+            --data-dir /tmp/ovnex-genesis-${{ github.run_number }} \
+            --log-level 4 \
+            --log-file "$GENESIS_LOG" \
+            --fixed-difficulty 1 \
+            --no-zmq \
+            --offline \
+            2>&1 | head -200 || true
 
-          echo "=== OVNEX Genesis TX Generation ===" > genesis_output/genesis_and_wallet_info.txt
-          echo "Generated: $(date -u)" >> genesis_output/genesis_and_wallet_info.txt
-          echo "Build Run: ${{ github.run_number }}" >> genesis_output/genesis_and_wallet_info.txt
-          echo "" >> genesis_output/genesis_and_wallet_info.txt
+          sleep 2
 
-          # Generate genesis transaction
-          echo "--- GENESIS TX ---" >> genesis_output/genesis_and_wallet_info.txt
-          echo "Copy the hex string below into cryptonote_config.h → config::GENESIS_TX" >> genesis_output/genesis_and_wallet_info.txt
-          echo "" >> genesis_output/genesis_and_wallet_info.txt
+          # Also try startup log
+          cat "$GENESIS_LOG" 2>/dev/null | head -50 || true
 
-          GENESIS_OUTPUT=$("./$OVNEXD" --print-genesis-tx 2>&1 || true)
-          echo "$GENESIS_OUTPUT" >> genesis_output/genesis_and_wallet_info.txt
+          # Extract genesis TX hex from log (long hex line in blockchain init)
+          GENESIS_HEX=$(grep -oP '(?<=genesis transaction: )[0-9a-f]{100,}' "$GENESIS_LOG" 2>/dev/null | head -1 || true)
+          if [ -z "$GENESIS_HEX" ]; then
+            GENESIS_HEX=$(grep -oP '^[0-9a-f]{100,}$' "$GENESIS_LOG" 2>/dev/null | head -1 || true)
+          fi
 
-          # Extract just the hex line (starts with 01 or 02 and is long)
-          GENESIS_HEX=$(echo "$GENESIS_OUTPUT" | grep -oP '^[0-9a-f]{100,}' | head -1 || true)
+          echo "=== OVNEX Genesis TX ===" > genesis_output/genesis_tx_info.txt
+          echo "Generated: $(date -u)" >> genesis_output/genesis_tx_info.txt
+          echo "Run: ${{ github.run_number }}" >> genesis_output/genesis_tx_info.txt
+          echo "" >> genesis_output/genesis_tx_info.txt
           if [ -n "$GENESIS_HEX" ]; then
-            echo "" >> genesis_output/genesis_and_wallet_info.txt
-            echo "GENESIS_TX_HEX_ONLY: $GENESIS_HEX" >> genesis_output/genesis_and_wallet_info.txt
+            echo "GENESIS_TX_HEX_ONLY: $GENESIS_HEX" >> genesis_output/genesis_tx_info.txt
+            echo "SUCCESS: Genesis TX captured"
+          else
+            echo "NOTE: Genesis TX not captured from log. Manual extraction needed." >> genesis_output/genesis_tx_info.txt
+            echo "Full daemon log included below:" >> genesis_output/genesis_tx_info.txt
+            cat "$GENESIS_LOG" >> genesis_output/genesis_tx_info.txt 2>/dev/null || true
+            echo "NOTE: Genesis TX not in log — see full output above"
           fi
+          cat genesis_output/genesis_tx_info.txt
 
-          echo "" >> genesis_output/genesis_and_wallet_info.txt
-          echo "--- DEV FUND WALLET ---" >> genesis_output/genesis_and_wallet_info.txt
-          echo "SECURITY WARNING: Store the seed phrase below in a secure offline location." >> genesis_output/genesis_and_wallet_info.txt
-          echo "Delete this artifact from GitHub after saving the seed phrase!" >> genesis_output/genesis_and_wallet_info.txt
-          echo "" >> genesis_output/genesis_and_wallet_info.txt
-
-          # Generate dev fund wallet (non-interactive)
-          WALLET_OUTPUT=$("./$WALLET_CLI" \
-            --generate-new-wallet genesis_output/dev_wallet \
-            --password "" \
-            --mnemonic-language English \
-            --log-level 0 \
-            2>&1 <<< "exit" || true)
-
-          echo "$WALLET_OUTPUT" >> genesis_output/genesis_and_wallet_info.txt
-
-          # Try to extract address from wallet file
-          if [ -f "genesis_output/dev_wallet" ]; then
-            WALLET_ADDR=$("./$WALLET_CLI" \
-              --wallet-file genesis_output/dev_wallet \
-              --password "" \
-              --log-level 0 \
-              2>&1 <<< "address
-          exit" | grep -oP 'ovnx[A-Za-z0-9]{90,}' | head -1 || true)
-            if [ -n "$WALLET_ADDR" ]; then
-              echo "" >> genesis_output/genesis_and_wallet_info.txt
-              echo "DEV_FUND_ADDRESS: $WALLET_ADDR" >> genesis_output/genesis_and_wallet_info.txt
-              echo "" >> genesis_output/genesis_and_wallet_info.txt
-              echo "ACTION REQUIRED:" >> genesis_output/genesis_and_wallet_info.txt
-              echo "1. Copy GENESIS_TX_HEX_ONLY into src/cryptonote_config.h → config::GENESIS_TX" >> genesis_output/genesis_and_wallet_info.txt
-              echo "2. Copy DEV_FUND_ADDRESS into src/cryptonote_config.h → config::GOVERNANCE_WALLET_ADDRESS" >> genesis_output/genesis_and_wallet_info.txt
-              echo "3. Commit and push to trigger a final clean build" >> genesis_output/genesis_and_wallet_info.txt
-            fi
-          fi
-
-          echo "Genesis and wallet generation complete."
-          cat genesis_output/genesis_and_wallet_info.txt
-
-      - name: Upload Genesis and Wallet Info (PRIVATE — delete after use)
+      - name: Upload Genesis TX info
         uses: actions/upload-artifact@v4
         with:
-          name: OVNEX-GENESIS-AND-WALLET-INFO-RUN-${{ github.run_number }}
-          path: genesis_output/genesis_and_wallet_info.txt
+          name: OVNEX-GENESIS-TX-RUN-${{ github.run_number }}
+          path: genesis_output/genesis_tx_info.txt
           retention-days: 7
 
       - name: Upload Linux artifacts

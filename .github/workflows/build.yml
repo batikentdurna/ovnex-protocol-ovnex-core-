@@ -292,8 +292,8 @@ jobs:
   release:
     name: Create GitHub Release
     runs-on: ubuntu-22.04
-    needs: [build-linux, build-windows]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-linux]
+    if: startsWith(github.ref, 'refs/tags/v') && needs.build-linux.result == 'success'
 
     steps:
       - name: Download Linux artifacts
@@ -302,8 +302,9 @@ jobs:
           name: ovnex-linux-x64-${{ github.ref_name }}-${{ github.run_number }}
           path: release/linux/
 
-      - name: Download Windows artifacts
+      - name: Download Windows artifacts (optional)
         uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
           name: ovnex-windows-x64-${{ github.ref_name }}-${{ github.run_number }}
           path: release/windows/
@@ -312,9 +313,12 @@ jobs:
         run: |
           cd release
           tar czf ovnex-linux-x64-${{ github.ref_name }}.tar.gz -C linux .
-          zip -r ovnex-windows-x64-${{ github.ref_name }}.zip windows/
+          # Windows zip only if dir is non-empty
+          if [ -d windows ] && [ "$(ls -A windows/)" ]; then
+            zip -r ovnex-windows-x64-${{ github.ref_name }}.zip windows/
+          fi
           sha256sum ovnex-linux-x64-${{ github.ref_name }}.tar.gz > SHA256SUMS.txt
-          sha256sum ovnex-windows-x64-${{ github.ref_name }}.zip >> SHA256SUMS.txt
+          [ -f ovnex-windows-x64-${{ github.ref_name }}.zip ] && sha256sum ovnex-windows-x64-${{ github.ref_name }}.zip >> SHA256SUMS.txt || true
           cat SHA256SUMS.txt
 
       - name: Create Release
@@ -325,7 +329,6 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-') }}
           files: |
             release/ovnex-linux-x64-${{ github.ref_name }}.tar.gz
-            release/ovnex-windows-x64-${{ github.ref_name }}.zip
             release/SHA256SUMS.txt
           body: |
             ## OVNEX Blockchain ${{ github.ref_name }}
@@ -334,7 +337,7 @@ jobs:
             | Platform | File |
             |---|---|
             | Linux x64 | `ovnex-linux-x64-${{ github.ref_name }}.tar.gz` |
-            | Windows x64 | `ovnex-windows-x64-${{ github.ref_name }}.zip` |
+            | Windows x64 | Coming soon (build in progress) |
 
             ### Binaries
             - `ovnexd` — Full node daemon

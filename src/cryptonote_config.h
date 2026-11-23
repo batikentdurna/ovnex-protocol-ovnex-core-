@@ -269,8 +269,7 @@ namespace config
   // GENESIS_TX: placeholder — regenerate with --print-genesis-tx after parameter finalization
   // This is the encoded genesis coinbase transaction (premine output will be in genesis block)
   // TODO: Replace with real genesis tx after wallet address is available
-  std::string const GENESIS_TX = "013c01ff0001808088c3c3c3c30202c3f0a7c355462c0e9e3cba9c8abc3b1e9f31985dadb5f4fb3c37e97de5d64e2ab21012cfb1a4de1df5fbb6e56b0da64d16a68ab1cdd8da3f86c86d0da9fef36000000";
-  
+  std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602ae79bc4406d6f800f892b344c1445b4fd55735b7828b23a383260daa05a2893d045a455048c4210185436c7f192258309ee90c5325a4e1ebac0e5d6bd27b47a1661672c9af3dd21f00000000";\n  
   uint32_t const GENESIS_NONCE = 10000;
 
   // Hash domain separators (unchanged from Monero lineage)
@@ -325,8 +324,8 @@ namespace config
         0x4F, 0x56, 0x4E, 0x45, 0x58, 0x01, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02
       } }; // OVNEX testnet
-    std::string const GENESIS_TX = "013c01ff0001808088c3c3c3c30202c3f0a7c355462c0e9e3cba9c8abc3b1e9f31985dadb5f4fb3c37e97de5d64e2ab21012cfb1a4de1df5fbb6e56b0da64d16a68ab1cdd8da3f86c86d0da9fef36000000";
-    uint32_t const GENESIS_NONCE = 10001;
+    std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602ae79bc4406d6f800f892b344c1445b4fd55735b7828b23a383260daa05a2893d045a455048c4210185436c7f192258309ee90c5325a4e1ebac0e5d6bd27b47a1661672c9af3dd21f00000000";\n  
+  uint32_t const GENESIS_NONCE = 10001;
     std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_TESTNET_ADDRESS";
     std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_TESTNET_ADDRESS";
     std::array<std::string, 3> const ORACLE_URLS = {{"disabled.ovnex.network:443", "disabled.ovnex.network:443", "disabled.ovnex.network:443"}};
@@ -345,8 +344,8 @@ namespace config
         0x4F, 0x56, 0x4E, 0x45, 0x58, 0x01, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03
       } }; // OVNEX stagenet
-    std::string const GENESIS_TX = "013c01ff0001808088c3c3c3c30202c3f0a7c355462c0e9e3cba9c8abc3b1e9f31985dadb5f4fb3c37e97de5d64e2ab21012cfb1a4de1df5fbb6e56b0da64d16a68ab1cdd8da3f86c86d0da9fef36000000";
-    uint32_t const GENESIS_NONCE = 10002;
+    std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602ae79bc4406d6f800f892b344c1445b4fd55735b7828b23a383260daa05a2893d045a455048c4210185436c7f192258309ee90c5325a4e1ebac0e5d6bd27b47a1661672c9af3dd21f00000000";\n  
+  uint32_t const GENESIS_NONCE = 10002;
     std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_STAGENET_ADDRESS";
     std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_STAGENET_ADDRESS";
     std::array<std::string, 3> const ORACLE_URLS = {{"disabled.ovnex.network:443", "disabled.ovnex.network:443", "disabled.ovnex.network:443"}};

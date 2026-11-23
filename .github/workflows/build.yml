@@ -116,6 +116,7 @@ jobs:
             -DARCH=default \
             -DBUILD_TESTS=OFF \
             -DUSE_UPNP=OFF \
+            -DSTATIC=ON \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DMANUAL_SUBMODULES=0
@@ -129,9 +130,7 @@ jobs:
           echo "=== build/release/bin/ ==="
           ls -la build/release/bin/ 2>/dev/null || echo "(not found)"
           echo "=== build/bin/ ==="
-          ls -la build/bin/ 2>/dev/null || echo "(not found)"
-
-      - name: Show ccache stats
+          ls -la build/bin/ 2>/dev/null || echo "(not found)"      - name: Show ccache stats
         run: ccache --show-stats
 
       - name: Collect binaries

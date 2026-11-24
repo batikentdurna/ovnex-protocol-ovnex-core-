@@ -116,6 +116,7 @@ jobs:
             -DARCH=default \
             -DBUILD_TESTS=OFF \
             -DUSE_UPNP=OFF \
+            -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DMANUAL_SUBMODULES=0

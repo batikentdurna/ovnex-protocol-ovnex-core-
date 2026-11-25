@@ -46,7 +46,7 @@
 // Timestamp: 1764547200 = November 22, 2026 00:00:00 UTC (OVNEX genesis date)
 const hardfork_t mainnet_hard_forks[] = {
   // v1: Genesis — standard CryptoNote transfers, genesis premine (3% = 3M OVNX)
-  { 1, 1, 0, 1764547200 },
+  { 1, 0, 0, 1764547200 },
   // v2: Block 10 — activate 5% protocol-level dev fee (HF_VERSION_DEV_FEE = 1 in config,
   //     but hardfork version 2 is used for RingCT tx stability confirmation)
   { 2, 10, 0, 1764547800 },

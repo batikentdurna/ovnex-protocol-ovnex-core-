@@ -266,10 +266,8 @@ namespace config
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
     } }; // "OVNEX" + version bytes
 
-  // GENESIS_TX: placeholder — regenerate with --print-genesis-tx after parameter finalization
-  // This is the encoded genesis coinbase transaction (premine output will be in genesis block)
-  // TODO: Replace with real genesis tx after wallet address is available
-    std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
+  // GENESIS_TX: verified runtime genesis (from ovnexd log, 2026-11-25)
+    std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602e05c9226aa1035a9b96f7f58494231900a0536e45a5f415cfca0f83f60425965045a455048242101f06d8bb4959a83116faa5271a97a5ffb737b061854951b7503dad039b96361f800000000";
   uint32_t const GENESIS_NONCE = 10000;
 
   // Hash domain separators (unchanged from Monero lineage)
@@ -324,7 +322,7 @@ namespace config
         0x4F, 0x56, 0x4E, 0x45, 0x58, 0x01, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02
       } }; // OVNEX testnet
-      std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
+      std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602e05c9226aa1035a9b96f7f58494231900a0536e45a5f415cfca0f83f60425965045a455048242101f06d8bb4959a83116faa5271a97a5ffb737b061854951b7503dad039b96361f800000000";
   uint32_t const GENESIS_NONCE = 10001;
     std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_TESTNET_ADDRESS";
     std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_TESTNET_ADDRESS";
@@ -344,7 +342,7 @@ namespace config
         0x4F, 0x56, 0x4E, 0x45, 0x58, 0x01, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03
       } }; // OVNEX stagenet
-      std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
+      std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602e05c9226aa1035a9b96f7f58494231900a0536e45a5f415cfca0f83f60425965045a455048242101f06d8bb4959a83116faa5271a97a5ffb737b061854951b7503dad039b96361f800000000";
   uint32_t const GENESIS_NONCE = 10002;
     std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_STAGENET_ADDRESS";
     std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_STAGENET_ADDRESS";

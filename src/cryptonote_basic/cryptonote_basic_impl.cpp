@@ -83,7 +83,10 @@ namespace cryptonote {
     const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
 
     if (already_generated_coins == 0) {
-      reward = 500000000000000000ull; // genesis block reward
+      // OVNEX: Block 0 (genesis) premine = 3,000,000 OVNX
+      // = 3,000,000 × 10^8 atomic units = 300,000,000,000,000 = 3e14
+      // This is the Founder Wallet premine. Validated in validate_miner_transaction.
+      reward = OVNEX_PREMINE_AMOUNT; // 3,000,000 OVNX in atomic units
       return true;
     }
 

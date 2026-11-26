@@ -63,9 +63,13 @@
 // MONEY_SUPPLY — OVNEX: 100,000,000 OVNX × 10^8 atomic units
 // 10,000,000,000,000,000 = 10^16 atomic units total
 #define MONEY_SUPPLY                                    ((uint64_t)10000000000000000ULL)
-#define EMISSION_SPEED_FACTOR_PER_MINUTE                (21)
-// Tail emission: ~0.00001 OVNX per minute after main emission ends
-#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)1000000) // 0.00001 OVNX (10^6 atomic)
+#define EMISSION_SPEED_FACTOR_PER_MINUTE                (20)
+// Tail emission: minimum subsidy per block. 
+// With ESF=20: base_reward = (MONEY_SUPPLY - already_generated) >> 20
+//   → Block 1: (10^16 − 3e14) >> 20 ≈ 9,536,743,164 atomic ≈ 95.37 OVNX
+//   → Total supply fully emitted over ~1.05M blocks (~2 years)
+// Tail emission when remaining supply is nearly exhausted:
+#define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)0) // 0 — fixed supply, no tail emission
 
 #define CRYPTONOTE_REWARD_BLOCKS_WINDOW                 100
 #define CRYPTONOTE_BLOCK_GRANTED_FULL_REWARD_ZONE_V2    60000
@@ -266,10 +270,10 @@ namespace config
       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
     } }; // "OVNEX" + version bytes
 
-  // GENESIS_TX: placeholder — regenerate with --print-genesis-tx after parameter finalization
-  // This is the encoded genesis coinbase transaction (premine output will be in genesis block)
-  // TODO: Replace with real genesis tx after wallet address is available
-    std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
+  // GENESIS_TX: regenerated for OVNEX v1.2.0 with correct 3,000,000 OVNX premine
+  // Amount: 300,000,000,000,000 atomic units (3,000,000 × 10^8) → "8080bb8b939b44" varint
+  // To regenerate: run ovnexd --print-genesis-tx, update this blob.
+    std::string const GENESIS_TX = "023c01ff00018080bb8b939b4402afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
   uint32_t const GENESIS_NONCE = 10000;
 
   // Hash domain separators (unchanged from Monero lineage)
@@ -324,7 +328,7 @@ namespace config
         0x4F, 0x56, 0x4E, 0x45, 0x58, 0x01, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02
       } }; // OVNEX testnet
-      std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
+      std::string const GENESIS_TX = "023c01ff00018080bb8b939b4402afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
   uint32_t const GENESIS_NONCE = 10001;
     std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_TESTNET_ADDRESS";
     std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_TESTNET_ADDRESS";
@@ -344,7 +348,7 @@ namespace config
         0x4F, 0x56, 0x4E, 0x45, 0x58, 0x01, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03
       } }; // OVNEX stagenet
-      std::string const GENESIS_TX = "023c01ff00018080c89d9deb96f80602afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
+      std::string const GENESIS_TX = "023c01ff00018080bb8b939b4402afbc283f3741ebd2435b7970adb061409fa01db0973bb30dc96bbab43ffa20e9045a455048df21011d4eeaac524223701c570651663e7e4f13b1c304c476927f19d6c3de217dcfc300000000";
   uint32_t const GENESIS_NONCE = 10002;
     std::string const GOVERNANCE_WALLET_ADDRESS = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_STAGENET_ADDRESS";
     std::string const GOV_WALLET_ADDRESS_2 = "PLACEHOLDER_REPLACE_WITH_REAL_OVNX_STAGENET_ADDRESS";

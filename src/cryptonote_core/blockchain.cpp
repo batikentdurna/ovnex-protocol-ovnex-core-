@@ -1408,11 +1408,33 @@ bool Blockchain::validate_miner_transaction(
 
   uint64_t height = m_db->height();
 
-  // --- Validate output count ---
-  // After placeholder is replaced: 2 outputs (miner + dev fee)
-  // During placeholder period: 1 output (miner only, dev fee absorbed)
+  // --- OVNEX: Genesis block (Block 0) — validate 3,000,000 OVNX premine ---
+  // already_generated_coins == 0 means this is the genesis block.
+  // We allow exactly 1 output of OVNEX_PREMINE_AMOUNT to the founder wallet.
+  if (already_generated_coins == 0)
+  {
+    if (b.miner_tx.vout.size() != 1)
+    {
+      MERROR("OVNEX: Genesis block miner_tx must have exactly 1 output (premine), got " << b.miner_tx.vout.size());
+      return false;
+    }
+    uint64_t genesis_amount = b.miner_tx.vout[0].amount;
+    if (genesis_amount != OVNEX_PREMINE_AMOUNT)
+    {
+      MERROR("OVNEX: Genesis block premine amount mismatch. Expected: " << print_money(OVNEX_PREMINE_AMOUNT)
+        << " (" << OVNEX_PREMINE_AMOUNT << " atomic), got: " << print_money(genesis_amount)
+        << " (" << genesis_amount << " atomic)");
+      return false;
+    }
+    base_reward = OVNEX_PREMINE_AMOUNT;
+    LOG_PRINT_L1("OVNEX: Genesis block premine validated: " << print_money(OVNEX_PREMINE_AMOUNT) << " OVNX");
+    return true;
+  }
+
+  // --- Validate output count (normal blocks) ---
+  // 1 output = miner only (dev fee absorbed/placeholder)
+  // 2 outputs = miner (95%) + dev fee (5%)
   const size_t output_size = b.miner_tx.vout.size();
-  if (already_generated_coins != 0)
   {
     if (output_size < 1 || output_size > 2)
     {

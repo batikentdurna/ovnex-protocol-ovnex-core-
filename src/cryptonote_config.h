@@ -63,7 +63,7 @@
 // MONEY_SUPPLY — OVNEX: 100,000,000 OVNX × 10^8 atomic units
 // 10,000,000,000,000,000 = 10^16 atomic units total
 #define MONEY_SUPPLY                                    ((uint64_t)10000000000000000ULL)
-#define EMISSION_SPEED_FACTOR_PER_MINUTE                (21)
+#define EMISSION_SPEED_FACTOR_PER_MINUTE                (20)
 // Tail emission: ~0.00001 OVNX per minute after main emission ends
 #define FINAL_SUBSIDY_PER_MINUTE                        ((uint64_t)1000000) // 0.00001 OVNX (10^6 atomic)
 

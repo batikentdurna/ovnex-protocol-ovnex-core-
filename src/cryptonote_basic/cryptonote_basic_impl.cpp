@@ -83,7 +83,7 @@ namespace cryptonote {
     const int emission_speed_factor = EMISSION_SPEED_FACTOR_PER_MINUTE - (target_minutes-1);
 
     if (already_generated_coins == 0) {
-      reward = 500000000000000000ull; // genesis block reward
+      reward = 300000000000000ull; // OVNEX genesis premine: 3,000,000 OVNX (3M * 10^8 atomic)
       return true;
     }
 

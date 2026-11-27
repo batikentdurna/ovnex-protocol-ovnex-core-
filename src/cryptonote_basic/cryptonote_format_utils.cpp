@@ -1139,6 +1139,7 @@ namespace cryptonote
     {
       case 12:
       case 9:
+      case 8:
       case 6:
       case 3:
       case 0:
@@ -1164,6 +1165,8 @@ namespace cryptonote
         return "zephyr";
       case 9:
         return "millizeph";
+      case 8:
+        return "ovnex";
       case 6:
         return "microzeph";
       case 3:

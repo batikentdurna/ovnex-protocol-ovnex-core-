@@ -1,8 +1,8 @@
 // OVNEX Blockchain — version.cpp.in
 // Forked from ZephyrProtocol/zephyr v2.3.0
 #define DEF_MONERO_VERSION_TAG "@VERSIONTAG@"
-#define DEF_MONERO_VERSION "1.0.0"
-#define DEF_MONERO_RELEASE_NAME "OVNEX v1.0.0 Genesis"
+#define DEF_MONERO_VERSION "1.2.2"
+#define DEF_MONERO_RELEASE_NAME "OVNEX v1.2.2"
 #define DEF_MONERO_VERSION_FULL "ovnex-" DEF_MONERO_VERSION "-" DEF_MONERO_VERSION_TAG
 #define DEF_MONERO_VERSION_IS_RELEASE @VERSION_IS_RELEASE@
 

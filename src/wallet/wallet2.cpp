@@ -5019,7 +5019,10 @@ bool wallet2::load_keys_buf(const std::string& keys_buf, const epee::wipeable_st
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, ask_password, AskPasswordType, Int, false, AskPasswordToDecrypt);
     m_ask_password = field_ask_password;
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, default_decimal_point, int, Int, false, CRYPTONOTE_DISPLAY_DECIMAL_POINT);
-    cryptonote::set_default_decimal_point(field_default_decimal_point);
+    // OVNEX fix: Always use the compiled-in decimal point (8), ignore any stale value
+    // from wallet files created under Zephyr (which used 12). This prevents
+    // "Invalid decimal point specification" crashes when loading old wallet files.
+    cryptonote::set_default_decimal_point(CRYPTONOTE_DISPLAY_DECIMAL_POINT);
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, max_reorg_depth, uint64_t, Uint64, false, ORPHANED_BLOCKS_MAX_COUNT);
     m_max_reorg_depth = field_max_reorg_depth;
     GET_FIELD_FROM_JSON_RETURN_ON_ERROR(json, min_output_count, uint32_t, Uint, false, 0);

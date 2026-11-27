@@ -1141,12 +1141,23 @@ namespace cryptonote
       case 9:
       case 8:
       case 6:
+      case 5:
       case 3:
+      case 2:
       case 0:
         default_decimal_point = decimal_point;
         break;
       default:
-        ASSERT_MES_AND_THROW("Invalid decimal point specification: " << decimal_point);
+        // OVNEX: CRYPTONOTE_DISPLAY_DECIMAL_POINT=8, so sub-units are 8,5,2,0
+        // Accept any value <= 12 to ensure forward compatibility
+        if (decimal_point <= 12)
+        {
+          default_decimal_point = decimal_point;
+        }
+        else
+        {
+          ASSERT_MES_AND_THROW("Invalid decimal point specification: " << decimal_point);
+        }
     }
   }
   //---------------------------------------------------------------
@@ -1169,11 +1180,18 @@ namespace cryptonote
         return "ovnex";
       case 6:
         return "microzeph";
+      case 5:
+        return "milliovnex";
       case 3:
         return "nanozeph";
+      case 2:
+        return "microovnex";
       case 0:
         return "picozeph";
       default:
+        // OVNEX: Accept any value <= 12 gracefully
+        if (decimal_point <= 12)
+          return "ovnex-sub";
         ASSERT_MES_AND_THROW("Invalid decimal point specification: " << decimal_point);
     }
   }

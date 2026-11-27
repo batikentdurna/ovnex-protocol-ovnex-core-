@@ -2742,11 +2742,11 @@ bool simple_wallet::set_unit(const std::vector<std::string> &args/* = std::vecto
   if (unit == "zephyr")
     decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT;
   else if (unit == "millizeph")
-    decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT - 3;
+    decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT > 3 ? CRYPTONOTE_DISPLAY_DECIMAL_POINT - 3 : 0;
   else if (unit == "microzeph")
-    decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT - 6;
+    decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT > 6 ? CRYPTONOTE_DISPLAY_DECIMAL_POINT - 6 : 0;
   else if (unit == "nanozeph")
-    decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT - 9;
+    decimal_point = CRYPTONOTE_DISPLAY_DECIMAL_POINT > 9 ? CRYPTONOTE_DISPLAY_DECIMAL_POINT - 9 : 0;
   else if (unit == "picozeph")
     decimal_point = 0;
   else

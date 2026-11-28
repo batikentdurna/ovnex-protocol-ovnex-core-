@@ -1483,12 +1483,17 @@ bool Blockchain::validate_miner_transaction(
   // --- Validate dev fee output (if present, 2 outputs) ---
   if (already_generated_coins != 0 && output_size == 2 && version >= HF_VERSION_DEV_FEE)
   {
-    uint64_t expected_dev_fee = (base_reward * OVNEX_DEV_FEE_PERCENT) / OVNEX_DEV_FEE_DENOMINATOR;
+    // Dev fee is 5% of TOTAL block reward (base_reward + fees), matching construct_miner_tx logic.
+    uint64_t total_reward = base_reward + fee_map["ZEPH"];
+    uint64_t expected_dev_fee = (total_reward * OVNEX_DEV_FEE_PERCENT) / OVNEX_DEV_FEE_DENOMINATOR;
     uint64_t actual_dev_fee = b.miner_tx.vout[1].amount;
 
     if (actual_dev_fee != expected_dev_fee)
     {
       MERROR("OVNEX: Dev fee amount incorrect. Expected: " << print_money(expected_dev_fee)
+        << " (5% of total_reward=" << print_money(total_reward)
+        << " = base_reward=" << print_money(base_reward)
+        << " + fees=" << print_money(fee_map["ZEPH"]) << ")"
         << ", got: " << print_money(actual_dev_fee));
       return false;
     }
